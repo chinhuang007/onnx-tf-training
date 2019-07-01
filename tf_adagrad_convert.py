@@ -55,7 +55,21 @@ with g.as_default():
 
   # create placeholder based on training info additional inputs, label
   # and additional initializers, learning_rate
-  p1 = tf.placeholder(tf.float32, shape=[5, 1], name='label')
+  additional_inputs = model.training_info.additional_input
+  additional_initializers = model.training_info.additional_initializer
+
+  # handle additional inputs, for ex. get the label name and shape
+  p1_name = additional_inputs[0].name
+  p1_shape = list(
+    d.dim_value for d in additional_inputs[0].type.tensor_type.shape.dim)
+
+  # handle additional initializers, for ex. set the learning rate
+  for n in additional_initializers:
+      if n.name is not 'R':
+          continue
+      z = n.float_data[0]
+      
+  p1 = tf.placeholder(tf.float32, shape=p1_shape, name=p1_name)
   p2 = tf.placeholder(tf.float32, shape= [], name='learning_rate')
 
   # next we add the loss function
@@ -80,9 +94,8 @@ with tf.Session(graph=g) as sess:
   for i in range(50):
     _, loss_value = sess.run((train, loss), 
           feed_dict={p: x, p1: y, p2: z}) 
-    print(loss_value)
 
-  # also do inference on 6 and 8
+  # also do inference on [10],[20],[30],[40],[50]
   new_x = [[10],[20],[30],[40],[50]]
 
   print(sess.run(y_pred, feed_dict={p: new_x}))

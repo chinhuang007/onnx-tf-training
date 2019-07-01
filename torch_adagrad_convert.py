@@ -40,7 +40,7 @@ def make_traning_components(onnx_model, label_tensor_info, score_tensor_info, lo
 
     # Adagrad learning rate.
     learning_rate_name = 'R'
-    learning_rate_tensor = helper.make_tensor(learning_rate_name, onnx.TensorProto.FLOAT, dims=[], vals=[1.0])
+    learning_rate_tensor = helper.make_tensor(learning_rate_name, onnx.TensorProto.FLOAT, dims=[], vals=[0.2])
     additional_initializers.append(learning_rate_tensor)
 
     optimizer_inputs = [learning_rate_name, iteration_count_tensor_name]
@@ -180,7 +180,7 @@ onnx_model = onnx.load(onnx_model_path)
 
 # Create label information manually.
 label_tensor_name = 'label'
-N = 2
+N = 5
 label_tensor_info = helper.make_tensor_value_info(label_tensor_name, onnx.TensorProto.FLOAT, shape=[N, 1])
 
 # Create training information for the Pytorch model.
