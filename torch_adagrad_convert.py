@@ -99,8 +99,9 @@ lr_decay=0.0
 weight_decay=0.0
 n = 1 
 l = 5
-X_ = torch.randn(l, n)
-Y_ = torch.randn(l, 1)
+#X_ = torch.randn(l, n)
+#Y_ = torch.randn(l, 1)
+# use a randomly generated dataset as constants to verify results
 X_ = torch.tensor([[-1.4027],
         [-0.7377],
         [-0.5206],
@@ -112,10 +113,6 @@ Y_ = torch.tensor([[ 1.3886],
         [-1.4880],
         [ 1.0679]])
 
-#X_ = torch.tensor([[1],[2],[3],[4],[5]], dtype=torch.float32)
-#Y_ = torch.tensor([[2],[4],[6],[8],[10]], dtype=torch.float32)
-print(X_)
-print(Y_)
 onnx_model_path = 'linear_model.onnx'
 
 def show_pytorch():
@@ -161,12 +158,12 @@ def show_tensorflow():
     init = tf.global_variables_initializer()
 
     sess.run(init)
-    print(sess.run(Y_pred, {X: new_data}))
+    print('Predict before training for [10, 20, 30, 40, 50] is, ', sess.run(Y_pred, {X: new_data}))
 
     for t in range(50):
         result = sess.run([minimizer], {X: X_, Y: Y_})
 
-    print(sess.run(Y_pred, {X: new_data}))
+    print('Predict after training for [10, 20, 30, 40, 50] is, ', sess.run(Y_pred, {X: new_data}))
 show_pytorch()
 print('---------')
 

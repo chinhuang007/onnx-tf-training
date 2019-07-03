@@ -20,8 +20,6 @@ def import_to_tensorboard(model_dir, log_dir):
           "tensorboard --logdir {}".format(log_dir))
 
 z = 0.2
-x = [[1],[2],[3],[4],[5]]
-y = [[2],[4],[6],[8],[10]]
 
 x = [[-1.4027],
         [-0.7377],
