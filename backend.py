@@ -191,15 +191,15 @@ class TensorflowBackend(Backend):
       # Use the onnx.numpy_helper because the data may be raw
       return numpy_helper.to_array(onnx_tensor).flatten().tolist()
 
-    return [(init.name,
-#             tf.constant(
+    input_dict= [(init.name,
              tf.Variable(
                  [tensor2list(init)],
-#                 shape=init.dims,
+                 trainable=True, # True for prototype, will be based on training info later
                  expected_shape=init.dims,
                  name=init.name,
                  dtype=data_type.onnx2tf(init.data_type)))
             for init in initializer]
+    return input_dict
 
   @classmethod
   def _onnx_node_to_tensorflow_op(cls,
