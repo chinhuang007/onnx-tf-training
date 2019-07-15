@@ -1,0 +1,261 @@
+ir_version: 3
+producer_name: "pytorch"
+producer_version: "0.4"
+graph {
+  node {
+    input: "input"
+    input: "1"
+    output: "3"
+    op_type: "MyInferenceFunction"
+  }
+  name: "torch-jit-export"
+  initializer {
+    dims: 1
+    dims: 1
+    data_type: 1
+    name: "1"
+    raw_data: "\000T\365\273"
+  }
+  input {
+    name: "input"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 5
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+  input {
+    name: "1"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 1
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+  output {
+    name: "3"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 5
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+}
+opset_import {
+  version: 9
+}
+function {
+  name: "MyInferenceFunction"
+  input: "input"
+  input: "1"
+  output: "3"
+  node {
+    input: "1"
+    output: "2"
+    op_type: "Transpose"
+    attribute {
+      name: "perm"
+      ints: 1
+      ints: 0
+      type: INTS
+    }
+    doc_string: "/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/functional.py(1354): linear\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/linear.py(67): forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(477): _slow_forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(487): __call__\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/container.py(92): forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(477): _slow_forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(487): __call__\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/jit/__init__.py(252): forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(489): __call__\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/jit/__init__.py(197): get_trace_graph\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(192): _trace_and_get_graph_from_model\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(224): _model_to_graph\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(281): _export\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(104): export\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/__init__.py(27): export\ntorch_adagrad_convert.py(184): show_pytorch\ntorch_adagrad_convert.py(218): <module>\n"
+  }
+  node {
+    input: "input"
+    input: "2"
+    output: "3"
+    op_type: "MatMul"
+    doc_string: "/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/functional.py(1354): linear\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/linear.py(67): forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(477): _slow_forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(487): __call__\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/container.py(92): forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(477): _slow_forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(487): __call__\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/jit/__init__.py(252): forward\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/nn/modules/module.py(489): __call__\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/jit/__init__.py(197): get_trace_graph\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(192): _trace_and_get_graph_from_model\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(224): _model_to_graph\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(281): _export\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/utils.py(104): export\n/home/chinhuang/venv_py3/lib/python3.6/site-packages/torch/onnx/__init__.py(27): export\ntorch_adagrad_convert.py(184): show_pytorch\ntorch_adagrad_convert.py(218): <module>\n"
+  }
+}
+training_info {
+  initializer {
+    data_type: 7
+    int64_data: 0
+    name: "T"
+  }
+  initializer {
+    data_type: 1
+    float_data: 0.20000000298023224
+    name: "R"
+  }
+  initializer {
+    dims: 1
+    dims: 1
+    data_type: 1
+    float_data: 1.0
+    name: "squared_grad_sum1"
+  }
+  input {
+    name: "input"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 5
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+  input {
+    name: "label"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 5
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+  output {
+    name: "loss_value"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+  output {
+    name: "new_1"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 1
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+  output {
+    name: "new_squared_grad_sum_1"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 1
+          }
+          dim {
+            dim_value: 1
+          }
+        }
+      }
+    }
+  }
+  algorithm {
+    name: "MyTrainingFunction"
+    input: "input"
+    input: "label"
+    input: "1"
+    input: "T"
+    input: "R"
+    input: "squared_grad_sum1"
+    output: "new_1"
+    output: "new_squared_grad_sum_1"
+    node {
+      input: "input"
+      input: "1"
+      output: "3"
+      op_type: "MyInferenceFunction"
+    }
+    node {
+      input: "label"
+      input: "3"
+      output: "loss_value"
+      op_type: "MSE"
+    }
+    node {
+      input: "input"
+      input: "1"
+      output: "grad_1"
+      op_type: "Gradient"
+      attribute {
+        name: "xs"
+        strings: "1"
+        type: STRINGS
+      }
+      attribute {
+        name: "y"
+        s: "loss_value"
+        type: STRING
+      }
+    }
+    node {
+      input: "R"
+      input: "T"
+      input: "1"
+      input: "grad_1"
+      input: "squared_grad_sum1"
+      output: "new_1"
+      output: "new_squared_grad_sum_1"
+      name: "Optimizer"
+      op_type: "Adagrad"
+      attribute {
+        name: "decay_factor"
+        f: 0.0
+        type: FLOAT
+      }
+      attribute {
+        name: "epsilon"
+        f: 1.0000000116860974e-07
+        type: FLOAT
+      }
+      attribute {
+        name: "norm_coefficient"
+        f: 0.0
+        type: FLOAT
+      }
+    }
+  }
+  update_binding {
+    key: "new_1"
+    value: "1"
+  }
+  update_binding {
+    key: "new_squared_grad_sum_1"
+    value: "squared_grad_sum1"
+  }
+}

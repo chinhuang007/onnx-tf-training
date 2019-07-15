@@ -6,32 +6,58 @@ from torch.autograd import Variable
 import torch.random as rnd
 from torch import optim
 
-def make_training_info(
-        additional_initializers, additional_inputs, additional_outputs,
-        loss, gradient_bindings, optimizer, update_bindings):
+def make_function(name, inputs, outputs, nodes, attributes=None):
+    algorithm = onnx.FunctionProto()
+    algorithm.name = name
+    algorithm.input.extend(inputs)
+    algorithm.output.extend(outputs)
+    algorithm.node.extend(nodes)
+    if attributes is not None:
+        algorithm.attribute.extend(attributes)
+    return algorithm
+
+def make_training_info(initializers, inputs, outputs,
+        algorithm, update_bindings):
     training_info = onnx.TrainingInfoProto()
-    training_info.additional_initializer.extend(additional_initializers)
-    training_info.additional_input.extend(additional_inputs)
-    training_info.additional_output.extend(additional_outputs)
-    training_info.loss.CopyFrom(loss)
-    for k, v in gradient_bindings.items():
-        bind = training_info.gradient_binding.add()
-        bind.key = k
-        bind.value = v
-    training_info.optimizer.CopyFrom(optimizer)
+    training_info.initializer.extend(initializers)
+    training_info.input.extend(inputs)
+    training_info.output.extend(outputs)
+    training_info.algorithm.CopyFrom(algorithm)
     for k, v in update_bindings.items():
         bind = training_info.update_binding.add()
         bind.key = k
         bind.value = v
     return training_info
 
-def make_traning_components(onnx_model, label_tensor_info, score_tensor_info, loss_type):
+def make_traning_components(onnx_model, label_tensor_info, score_tensor_info, loss_type, inference_function_name='MyInferenceFunction'):
     additional_inputs = [label_tensor_info]
     additional_outputs = []
     additional_initializers = []
 
-    gradient_bindings = {}
     update_bindings = {}
+
+    # Call inference graph (type: FunctionProto) in the training algorithm.
+    inference_initializer_names = list(info.name for info in onnx_model.graph.initializer)
+    inference_total_inputs = list(info.name for info in onnx_model.graph.input if info.name not in inference_initializer_names) + inference_initializer_names
+    inference_node = helper.make_node(op_type=inference_function_name,
+                                      inputs=inference_total_inputs,
+                                      outputs=[info.name for info in onnx_model.graph.output])
+
+    # Compute loss using outputs produced by the inference call.
+    loss_tensor_name = 'loss_value'
+    if score_tensor_info.name not in [info.name for info in onnx_model.graph.output]:
+        raise Exception('Score cannot be found among inference outputs.')
+    loss_node = helper.make_node(op_type=loss_type, inputs=[label_tensor_info.name, score_tensor_info.name],
+                                 outputs=[loss_tensor_name])
+    loss_tensor_info = helper.make_tensor_value_info(loss_tensor_name, onnx.TensorProto.FLOAT, shape=[])
+    additional_outputs.append(loss_tensor_info)
+
+
+    gradient_node = helper.make_node(op_type='Gradient',
+                                     inputs=[info.name for info in onnx_model.graph.input],
+                                     outputs=['grad_' + info.name for info in onnx_model.graph.initializer],
+                                     xs=[info.name for info in onnx_model.graph.initializer],
+                                     y=loss_tensor_name)
 
     # Adagrad iteartion count.
     iteration_count_tensor_name = 'T'
@@ -47,11 +73,16 @@ def make_traning_components(onnx_model, label_tensor_info, score_tensor_info, lo
     optimizer_attrs = {'norm_coefficient': 0.0, 'epsilon': 1e-7, 'decay_factor': 0.0}
     optimizer_outputs = []
 
+    optimized_tensors = []
+    gradient_tensors = []
+    state_tensors = []
+    new_optimized_tensors = []
+    new_state_tensors = []
+
     for info in onnx_model.graph.initializer:
         gradient_tensor_name = 'grad_' + info.name
-        gradient_bindings[info.name] = gradient_tensor_name
 
-        state_tensor_name = 'sq_grad_sum' + info.name
+        state_tensor_name = 'squared_grad_sum' + info.name
         state_initializer = helper.make_tensor(state_tensor_name, onnx.TensorProto.FLOAT, dims=info.dims,
                                                vals=np.ones(info.dims).flatten())
         additional_initializers.append(state_initializer)
@@ -59,37 +90,54 @@ def make_traning_components(onnx_model, label_tensor_info, score_tensor_info, lo
         update_tensor_name = 'new_' + info.name
         update_tensor_info = helper.make_tensor_value_info(update_tensor_name, info.data_type, shape=info.dims)
         additional_outputs.append(update_tensor_info)
-        update_bindings[info.name] = update_tensor_name
+        update_bindings[update_tensor_name] = info.name
 
-        new_state_tensor_name = 'new_sq_grad_sum_' + info.name
+        new_state_tensor_name = 'new_squared_grad_sum_' + info.name
         new_state_info = helper.make_tensor_value_info(new_state_tensor_name, info.data_type, shape=info.dims)
         additional_outputs.append(new_state_info)
-        update_bindings[state_tensor_name] = new_state_tensor_name
+        update_bindings[new_state_tensor_name] = state_tensor_name
 
-        optimizer_inputs.append(info.name)
-        optimizer_inputs.append(gradient_tensor_name)
-        optimizer_inputs.append(state_tensor_name)
-        optimizer_outputs.append(update_tensor_name)
-        optimizer_outputs.append(new_state_tensor_name)
+        optimized_tensors.append(info.name)
+        gradient_tensors.append(gradient_tensor_name)
+        state_tensors.append(state_tensor_name)
+        new_optimized_tensors.append(update_tensor_name)
+        new_state_tensors.append(new_state_tensor_name)
 
     optimizer_node = helper.make_node(op_type='Adagrad',
-                                      inputs=optimizer_inputs,
-                                      outputs=optimizer_outputs,
+                                      inputs=optimizer_inputs + optimized_tensors + gradient_tensors + state_tensors,
+                                      outputs=new_optimized_tensors + new_state_tensors,
                                       name='Optimizer', **optimizer_attrs)
 
-    loss_tensor_name = 'loss_value'
-    loss_node = helper.make_node(op_type=loss_type, inputs=[label_tensor_info.name, score_tensor_info.name],
-                                 outputs=[loss_tensor_name])
-    loss_tensor_info = helper.make_tensor_value_info(loss_tensor_name, onnx.TensorProto.FLOAT, shape=[])
-    additional_outputs.append(loss_tensor_info)
+    total_nodes = [inference_node, loss_node, gradient_node, optimizer_node]
+    total_initializers = list(onnx_model.graph.initializer) + additional_initializers
+    inference_initializer_names = set(info.name for info in onnx_model.graph.initializer)
+    total_inputs = list(info for info in onnx_model.graph.input if info.name not in inference_initializer_names) + additional_inputs
+    total_outputs = additional_outputs
 
-    return make_training_info(additional_initializers=additional_initializers,
-                              additional_inputs=additional_inputs,
-                              additional_outputs=additional_outputs,
-                              loss=loss_node,
-                              gradient_bindings=gradient_bindings,
-                              optimizer=optimizer_node,
+    algorithm = make_function('MyTrainingFunction', [info.name for info in total_inputs] + [info.name for info in total_initializers], new_optimized_tensors + new_state_tensors, total_nodes)
+
+    return make_training_info(initializers=additional_initializers,
+                              inputs=total_inputs,
+                              outputs=total_outputs,
+                              algorithm=algorithm,
                               update_bindings=update_bindings)
+
+def move_inference_graph_to_function(onnx_model):
+    inference_initializer_names = list(info.name for info in onnx_model.graph.initializer)
+    input_names = [info.name for info in onnx_model.graph.input if info.name not in inference_initializer_names] + inference_initializer_names
+    output_names = [info.name for info in onnx_model.graph.output]
+    inference_function = make_function('MyInferenceFunction', input_names, output_names, list(onnx_model.graph.node))
+    for i in range(len(onnx_model.graph.node)):
+        onnx_model.graph.node.pop()
+    for i in range(len(onnx_model.graph.value_info)):
+        onnx_model.graph.value_info.pop()
+    onnx_model.function.extend([inference_function])
+
+    # Call inference graph (type: FunctionProto) in the training algorithm.
+    inference_node = helper.make_node(op_type='MyInferenceFunction',
+                                      inputs=input_names,
+                                      outputs=[info.name for info in onnx_model.graph.output])
+    onnx_model.graph.node.extend([inference_node])
 
 # Construct a Pytorch linear model and export it to ONNX.
 onnx_model_path = 'linear_model.onnx'
@@ -112,6 +160,9 @@ Y_ = torch.tensor([[ 1.3886],
         [ 1.9602],
         [-1.4880],
         [ 1.0679]])
+
+X_ = torch.tensor([[1.0],[2.0],[3.0],[4.0],[5.0]])
+Y_ = torch.tensor([[2.0],[4.0],[6.0],[8.0],[10.0]])
 
 onnx_model_path = 'linear_model.onnx'
 
@@ -182,7 +233,9 @@ label_tensor_info = helper.make_tensor_value_info(label_tensor_name, onnx.Tensor
 
 # Create training information for the Pytorch model.
 training_info = make_traning_components(onnx_model, label_tensor_info, onnx_model.graph.output[0], loss_type='MSE')
-onnx_model.training_info.CopyFrom(training_info)
+training_info_buffer = onnx_model.training_info.add()
+training_info_buffer.CopyFrom(training_info)
+move_inference_graph_to_function(onnx_model)
 
 # Save ONNX model with training information.
 onnx.save(onnx_model, 'training_' + onnx_model_path)
