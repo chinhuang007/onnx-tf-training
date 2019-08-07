@@ -149,17 +149,6 @@ n = 1
 l = 5
 #X_ = torch.randn(l, n)
 #Y_ = torch.randn(l, 1)
-# use a randomly generated dataset as constants to verify results
-X_ = torch.tensor([[-1.4027],
-        [-0.7377],
-        [-0.5206],
-        [ 0.2311],
-        [-0.5809]])
-Y_ = torch.tensor([[ 1.3886],
-        [ 0.7485],
-        [ 1.9602],
-        [-1.4880],
-        [ 1.0679]])
 
 X_ = torch.tensor([[1.0],[2.0],[3.0],[4.0],[5.0]])
 Y_ = torch.tensor([[2.0],[4.0],[6.0],[8.0],[10.0]])
