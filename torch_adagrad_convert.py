@@ -6,6 +6,18 @@ from torch.autograd import Variable
 import torch.random as rnd
 from torch import optim
 
+def extract_training_algorithm_as_another_model(onnx_model):
+    graph = helper.make_graph(
+        onnx_model.training_info[0].algorithm.node, 'Training Graph',
+        onnx_model.training_info[0].input, onnx_model.training_info[0].output,
+        onnx_model.training_info[0].initializer)
+    graph.initializer.extend(onnx_model.graph.initializer)
+    model = helper.make_model(graph)
+    opset = model.opset_import.add()
+    opset.domain = ''
+    opset.version = 12
+    return model
+
 def make_function(name, inputs, outputs, nodes, attributes=None):
     algorithm = onnx.FunctionProto()
     algorithm.name = name
@@ -153,8 +165,6 @@ l = 5
 X_ = torch.tensor([[1.0],[2.0],[3.0],[4.0],[5.0]])
 Y_ = torch.tensor([[2.0],[4.0],[6.0],[8.0],[10.0]])
 
-onnx_model_path = 'linear_model.onnx'
-
 def show_pytorch():
     X = X_.clone()
     Y = Y_.clone()
@@ -169,7 +179,7 @@ def show_pytorch():
     solver = optim.Adagrad(model.parameters(), lr=lr, lr_decay=lr_decay, weight_decay=weight_decay)
 
     new_data = torch.tensor([[10],[20],[30],[40],[50]], dtype=torch.float32)
-    print('Predict before training for [10, 20, 30, 40, 50] is, ', model(new_data))
+    print('Pytorch: Predict before training for [10, 20, 30, 40, 50] is, ', model(new_data))
     torch.onnx.export(model, X, onnx_model_path, verbose=True)
 
     for t in range(50):
@@ -178,7 +188,7 @@ def show_pytorch():
         model.zero_grad()
         loss.backward()
         solver.step()
-    print('Predict after training for [10, 20, 30, 40, 50] is, ', model(new_data))
+    print('Pytorch: Predict after training for [10, 20, 30, 40, 50] is, ', model(new_data))
 
 def show_tensorflow():
     rnd.manual_seed(0)
@@ -198,12 +208,12 @@ def show_tensorflow():
     init = tf.global_variables_initializer()
 
     sess.run(init)
-    print('Predict before training for [10, 20, 30, 40, 50] is, ', sess.run(Y_pred, {X: new_data}))
+    print('Tensorflow: Predict before training for [10, 20, 30, 40, 50] is, ', sess.run(Y_pred, {X: new_data}))
 
     for t in range(50):
         result = sess.run([minimizer], {X: X_, Y: Y_})
 
-    print('Predict after training for [10, 20, 30, 40, 50] is, ', sess.run(Y_pred, {X: new_data}))
+    print('Tensorflow: Predict after training for [10, 20, 30, 40, 50] is, ', sess.run(Y_pred, {X: new_data}))
 show_pytorch()
 print('---------')
 
@@ -231,3 +241,5 @@ onnx.save(onnx_model, 'training_' + onnx_model_path)
 with open('training_linear_model.txt', 'wt') as f:
     f.write(str(onnx_model))
 
+training_model = extract_training_algorithm_as_another_model(onnx_model)
+onnx.save(training_model, 'training_only_' + onnx_model_path)

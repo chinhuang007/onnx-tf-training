@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import onnx
 from onnx_tf.backend import prepare
@@ -34,6 +35,9 @@ onnx_file = 'inference_linear_model.onnx'
 model = onnx.load(onnx_file)
 tf_rep = prepare(model)
 
+#import pdb; pdb.set_trace();
+#tf_rep.export_graph("export_adagrad.pb")
+
 # since the converter doesn't work with function nodes,
 # we load the training info separately
 onnx_file = 'training_linear_model.onnx'
@@ -52,6 +56,7 @@ with g.as_default():
   # and initializers for learning_rate
   training_inputs = model.training_info[0].input
   training_initializers = model.training_info[0].initializer
+  training_nodes = model.training_info[0].algorithm.node
 
   # handle training inputs, for ex. get the label name and shape
   for n in training_inputs:
@@ -70,11 +75,19 @@ with g.as_default():
 
   # next we add the loss function
   # add loss to training procedure based on the training info loss node
-  loss = tf.losses.mean_squared_error(labels=p1, predictions=y_pred)
+  if 'MSE' in [node.op_type for node in training_nodes]:
+    loss = tf.losses.mean_squared_error(labels=p1, predictions=y_pred)
+  else:
+    print('Sorry, we currently only support MSE!')
+    sys.exit()
 
   # and add the optimizer 
   # add optimizer to training procedure based on the training info optimizer node
-  optimizer = tf.train.AdagradOptimizer(learning_rate=p2)
+  if 'Adagrad' in [node.op_type for node in training_nodes]:
+    optimizer = tf.train.AdagradOptimizer(learning_rate=p2)
+  else:
+    print('Sorry, we currently only handle Adagrad!')
+    sys.exit()
 
   # use trainable variables for gradients
   grads = optimizer.compute_gradients(loss, var_list=tf.trainable_variables())
